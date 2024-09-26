@@ -13,13 +13,15 @@ var store = DocumentStore.For(options =>
     options.AutoCreateSchemaObjects = AutoCreate.All;
 
     options.RegisterValueType(typeof(EmailAddress));
+    options.RegisterValueType(typeof(Age));
 });
 
 await using var session = store.LightweightSession();
 
 var customer = new Customer
 {
-    Email = EmailAddress.From("example@me.com")
+    Email = EmailAddress.From("example@me.com"),
+    Age = Age.From(25)
 };
 
 session.Store(customer);
@@ -34,10 +36,17 @@ if (loadedCustomer is null)
 Console.WriteLine(loadedCustomer.Email);
 
 // Throws exception currently
-var queriedCustomer = await session.Query<Customer>()
+var queryByAge = await session.Query<Customer>()
+    .FirstOrDefaultAsync(x => x.Age == 25);
+
+if (queryByAge is null)
+    Console.WriteLine("Customer not found");
+
+// Throws exception currently
+var queryByEmail = await session.Query<Customer>()
     .FirstOrDefaultAsync(x => x.Email == customer.Email);
 
-if (queriedCustomer is null)
+if (queryByEmail is null)
     Console.WriteLine("Customer not found");
 
 return;
@@ -45,9 +54,14 @@ return;
 [ValueObject<string>]
 public partial record EmailAddress;
 
+[ValueObject<int>]
+public partial record Age;
+
 public class Customer
 {
     public Guid Id { get; set; }
     
     public required EmailAddress Email { get; init; }
+    
+    public required Age Age { get; init; }
 }
